@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>送礼视图 · 茶园认养</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site">
+  <h1>🎁 茶园认养 · 送礼视图</h1>
+  <nav><a href="/">返回山坡地图</a><a href="/design">设计说明</a></nav>
+</header>
+<div class="wrap">
+  <div class="card" id="card" style="max-width:680px;margin:24px auto">
+    <h2 id="title">正在校验分享链接…</h2>
+    <div id="body"></div>
+  </div>
+  <div class="card" style="max-width:680px;margin:0 auto">
+    <h2>这个页面的权限规则</h2>
+    <ul class="muted" style="margin:6px 0">
+      <li>链接携带服务端签发的令牌，<strong>权限在接口层判定</strong>：<code>gift</code> 令牌返回的数据里根本没有价格、联系方式字段（不是用 CSS 把元素藏起来）。</li>
+      <li><code>admin</code> 范围令牌才会下发 <code>priceCents</code> 与 <code>contact</code>。</li>
+      <li>过期链接返回 <code>410</code>，被撤销返回 <code>404</code>，页面不渲染任何认养信息。</li>
+    </ul>
+    <p class="muted">手动测试：在后台「送礼权限链接」里签发 gift / admin 两种链接，或直接对比接口返回 JSON。</p>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/gift.js"></script>
+</body>
+</html>

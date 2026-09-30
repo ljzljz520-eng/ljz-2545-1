@@ -1,0 +1,16 @@
+{
+  "name": "tea-garden-adoption",
+  "version": "1.0.0",
+  "description": "茶园认养全栈主题站：版本化山坡地块、认养区间、采摘批次与检测声明范围、送礼权限接口、离线日记",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node --test test/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "11.10.0"
+  }
+}

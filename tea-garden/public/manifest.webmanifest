@@ -1,0 +1,9 @@
+{
+  "name": "云雾峰茶园认养",
+  "short_name": "茶园认养",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5ec",
+  "theme_color": "#2c4f30",
+  "description": "版本化山坡地块认养、采摘批次检测声明与离线生长日记"
+}

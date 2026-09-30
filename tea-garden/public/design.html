@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>设计说明 · 茶园认养</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site"><h1>📐 设计说明</h1>
+<nav><a href="/">山坡地图</a><a href="/admin">后台</a><a href="/gift">送礼视图</a></nav></header>
+<div class="wrap" style="max-width:920px">
+
+  <div class="card">
+    <h2>一、这是什么站</h2>
+    <p>「云雾峰茶园认养」演示一座山坡茶园的<strong>地块—认养—采摘—检测</strong>全链路。核心难点不是展示，而是<strong>地块边界会随时间变化</strong>（排水沟扩建要拆分、田块整合要合并、复测要纠偏），而认养合同跨在这些变化的前后。本站把「空间几何」「时间版本」「认养权利」三者的关系做成可验证的系统，而不是静态宣传页。</p>
+    <p class="muted">技术：Node.js 内置 http + better-sqlite3（同步事务）+ 原生 HTML/CSS/JS + 自研 SVG 地图与平面几何算法，无前端框架、无第三方地图依赖。</p>
+  </div>
+
+  <div class="card">
+    <h2>二、空间版本模型（用户怎么看懂"这是哪个时段"）</h2>
+    <ul>
+      <li><code>parcels</code> 是地块<strong>逻辑实体</strong>（拆分时延续片保留同一 id）；<code>parcel_versions</code> 保存每一条<strong>边界版本</strong>：GeoJSON 多边形、面积、半开有效区间 <code>[valid_from, valid_to)</code>、当时编码/名称快照。</li>
+      <li>地图顶部有<strong>时段滑块</strong>（2023–2026）。页面任何时刻都显示一个明确日期，并在标题用色块标注「查看时段」；详情与认养区间都只取与该日期重叠的记录。</li>
+      <li>旧认养<strong>按原边界保留</strong>在历史版本上：滑块拨回 2024-02 能看到整块老区 A 与何老伯的 3000㎡；拨到 2024-04 则是拆分后的 A1/A2 与按交集落下的 1350/1650㎡。</li>
+      <li><code>version_lineage</code> 记录 create/split/merge/correct 及新旧版本交集权重，地块详情可查看完整谱系。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>三、拆分/合并如何不重复分配面积</h2>
+    <p>演化在<strong>单个数据库事务</strong>内完成：条件校验 → 关闭旧版本 → 写新版本 → 谱系 → 认养面积对应 → 占用校验，任一步失败整体回滚。</p>
+    <ol>
+      <li><strong>面积对应</strong>：旧版本上仍生效的每条认养，按 <code>认养份额 f = 认养面积/旧面积</code> 与新旧多边形<strong>几何交集</strong>，把面积分到新版本：<code>confirmed = f × 交集面积</code>。拆分矩形地块时严格等于按切线比例分配。</li>
+      <li><strong>固定份额 fixed</strong>：合同面积不变。新边界能对应多少先确认多少，不足部分（&gt;0.5㎡）记一条 <code>pending</code> <strong>未决差异</strong>，在后台「未决差异」里人工"确认落实/核销"，不会悄悄多占。</li>
+      <li><strong>随边界 boundary</strong>：权利随地面走，确认面积按交集自动重算，不挂未决。两种模式可在新增认养时直接比较。</li>
+      <li><strong>不变量</strong>：每个地块版本在任意日期的 confirmed 认养面积之和 ≤ 版本面积（事件点扫掠求最大占用）。新增重叠认养或差异确认一旦超额，返回 <code>409 AREA_CONFLICT</code>。</li>
+      <li>合并只允许<strong>不重叠且并集为凸</strong>（凸包面积≈面积和）的地块，防止吞缝/自交；拆分要求切割线贯穿且两片面积之和等于原面积。</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>四、版本条件提交与并发占用冲突</h2>
+    <ul>
+      <li>所有演化/认养写入都带 <code>expectedVersion</code>（乐观锁）。基于过期版本提交 → <code>409 STALE_VERSION</code>，响应里附当前版本号，提示刷新重试。</li>
+      <li>better-sqlite3 同步事务 + <code>busy_timeout</code>，在 Node 单进程内把"读当前版本—改边界—校验占用—提交"做成串行临界区；真正的面积超额由事务末尾的占用断言兜底，而不是靠按钮置灰。</li>
+      <li>所有登录、写入、冲突在 <code>audit_log</code> 留痕，后台「冲突审计」可查。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>五、采摘批次与检测：只代表声明范围</h2>
+    <ul>
+      <li>批次创建时绑定<strong>采摘当天生效的边界版本</strong>与手写「声明范围」（如"仅 A1 西片当日手采 42kg"）。</li>
+      <li>检测报告挂在批次下；列表只显示数量，<strong>必须进入该批次详情才能看到检测内容与"仅对该批次来样负责"的醒目声明</strong>。任何页面都不出现"全园农残合格"之类的泛化表述。</li>
+      <li>撤回检测 = 报告软撤回 + 附件在对象层 <code>archived</code> 归档：文件以 SHA-256 命名存于 <code>data/objects/</code>，DB 仅存指针/哈希；归档后下载接口返回 <code>410</code>，文件不物理删除以留痕。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>六、送礼视图：权限在接口，不靠 CSS</h2>
+    <p>分享链接是服务端签发的随机令牌（<code>gift_shares</code>，可过期、可撤销）。<code>GET /api/gift/:token</code> 在<strong>服务端按 scope 组装响应</strong>：</p>
+    <ul>
+      <li><code>gift</code>：只返回署名、地块、面积、时段——JSON 里<strong>根本不存在</strong> <code>priceCents/contact</code> 字段；</li>
+      <li><code>admin</code>：才额外下发价格与联系方式；</li>
+      <li>过期 → 410、撤销 → 404，前端拿不到任何认养数据。可在浏览器直接打开接口 URL 验证"看不到"，而不是检查元素找隐藏 DOM。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>七、离线生长日记</h2>
+    <p>农户断网写日记 → 写入 <code>localStorage</code> 待发队列（含 <code>clientId</code>）；联网后自动 POST 同步。服务端对 <code>client_id</code> 建唯一约束并<strong>幂等去重</strong>：重复/重试提交只保留一条，已同步的会返回 <code>deduplicated</code>。Service Worker 只缓存应用外壳，<strong>绝不缓存 API 写请求</strong>，避免"断网假成功"。</p>
+  </div>
+
+  <div class="card">
+    <h2>八、地图与视觉（原创）</h2>
+    <ul>
+      <li>手绘风等高线 + 纸感卡片 + 山雾绿/茶汤赭配色，斜纹叠加表达已认养占比，超额地块变红；指北针、50m 比例尺与"局部米制坐标、非地理投影"声明，避免用户误把示意图当 GIS 定位。</li>
+      <li>每个地块标签同时给出 <strong>版本号 + 面积 + 已认面积</strong>；认养条目显示署名、模式徽标、区间与待决状态，让"位置属于哪个时段、记录属于哪份合同"一目了然。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>九、测试覆盖（npm test）</h2>
+    <table>
+      <thead><tr><th>场景</th><th>验证点</th></tr></thead>
+      <tbody>
+        <tr><td>离线日记</td><td>同 clientId 重复同步只落一条</td></tr>
+        <tr><td>边界纠偏</td><td>新版本生效/旧区间关闭；不相交边界被拒</td></tr>
+        <tr><td>同地块重叠认养</td><td>面积超额返回 409，事务回滚不超卖</td></tr>
+        <tr><td>拆分合并</td><td>面积守恒；旧认养按交集重映射；fixed 产生未决、boundary 不产生；过期版本提交 409；重叠/非相邻合并被拒</td></tr>
+        <tr><td>附件撤回</td><td>报告撤回后附件 archived，下载 410</td></tr>
+        <tr><td>分享链接过期/权限</td><td>过期 410、撤销 404；gift 无价格字段、admin 有</td></tr>
+        <tr><td>检测范围</td><td>批次绑定采摘时版本；接口返回 scopeNotice</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">演示账号 admin/admin123；种子自动生成有效/过期/admin 三种送礼令牌（见 data/seed-manifest.json）。</p>
+  </div>
+
+</div>
+<footer>云雾峰茶园认养 · 设计与实现均为本演示原创</footer>
+</body>
+</html>

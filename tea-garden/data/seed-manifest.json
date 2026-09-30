@@ -1,0 +1,33 @@
+{
+  "users": {
+    "admin": "admin / admin123",
+    "farmer": "farmer / farmer123"
+  },
+  "giftTokens": {
+    "validGift": "7Dbz77x3eOtrFq5boK_wgjR7",
+    "expiredGift": "FBVmNjDJNy1Dl_FUm4ZGFC_5",
+    "adminScope": "WfpFNMZGyWd9eLgQ9IT4KzyD"
+  },
+  "parcels": [
+    {
+      "id": 1,
+      "code": "A1",
+      "name": "北坡甲坞·西片"
+    },
+    {
+      "id": 2,
+      "code": "A2",
+      "name": "北坡甲坞·东片"
+    },
+    {
+      "id": 3,
+      "code": "B",
+      "name": "北坡云带"
+    },
+    {
+      "id": 4,
+      "code": "C",
+      "name": "南坡向阳坪"
+    }
+  ]
+}

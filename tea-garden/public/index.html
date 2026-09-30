@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>云雾峰茶园认养 · 山坡地块图</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="manifest" href="/manifest.webmanifest">
+</head>
+<body>
+<header class="site">
+  <h1>🍃 云雾峰茶园认养</h1>
+  <nav>
+    <a href="/">山坡地图</a>
+    <a href="#diaries">生长日记</a>
+    <a href="#batches">采摘与检测</a>
+    <a href="/gift">送礼视图</a>
+    <a href="/admin">后台管理</a>
+    <a href="/design">设计说明</a>
+    <span style="font-size:12px;opacity:.85"><span id="netDot" class="offline-dot"></span><span id="netText">检测中</span></span>
+  </nav>
+</header>
+
+<div class="wrap">
+  <div class="grid two">
+    <!-- 左：地图 -->
+    <div class="card">
+      <h2>山坡地块图
+        <span class="period-chip" id="periodChip" title="地图与认养记录均按该日期的生效版本呈现">—</span>
+      </h2>
+      <div class="timeline">
+        <span class="muted">时段</span>
+        <input type="range" id="dateRange" min="2023-01-01" max="2026-12-31" step="1" value="2025-09-30">
+        <input type="date" id="datePick" style="width:150px" value="2025-09-30">
+        <button class="ghost small" id="todayBtn">今天</button>
+      </div>
+      <p class="muted" id="mapHint">拖动滑块查看不同时段的<strong>地块边界版本</strong>。色块为该日生效边界；斜纹为当日已认养面积；点击地块查看认养区间。</p>
+      <div class="mapbox" id="map"></div>
+      <p class="muted" style="margin-top:6px">认养占用：绿色刻度 ≤ 地块面积；红色表示该日存在超额（后台事务会阻止此类写入）。旧认养在其所属历史版本上按原边界保留。</p>
+    </div>
+
+    <!-- 右：详情 -->
+    <div>
+      <div class="card" id="detailCard">
+        <h2>地块详情</h2>
+        <div id="detail"><p class="muted">点击地图中的地块查看其边界版本、面积对应与认养区间。</p></div>
+      </div>
+      <div class="card">
+        <h2>图例与规则</h2>
+        <p style="margin:4px 0">
+          <span class="badge fixed">固定份额 fixed</span>认养面积不随边界变，差异挂“未决”
+          <br><span class="badge boundary">随边界 boundary</span>面积按几何交集自动重映射
+          <br><span class="badge pending">待决差异</span>拆分/合并后需管理员处理的面积差
+        </p>
+        <div class="notice">检测报告<strong>只代表批次声明范围</strong>，不得据一份报告推断整座茶园。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生长日记 -->
+  <div class="card" id="diaries">
+    <h2>生长日记 <button class="small ghost" id="addDiaryBtn" style="margin-left:auto">＋ 记一条（支持离线）</button></h2>
+    <p class="muted" id="offlineStatus"></p>
+    <div id="diaryList"></div>
+  </div>
+
+  <!-- 农户 -->
+  <div class="card">
+    <h2>管护农户</h2>
+    <div id="farmerList" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))"></div>
+  </div>
+
+  <!-- 采摘批次 -->
+  <div class="card" id="batches">
+    <h2>采摘批次与检测声明</h2>
+    <div class="notice warn">每批检测都绑定<strong>具体批次与采摘时的边界版本</strong>。页面仅在批次详情内展示其检测，绝不把一份检测泛化到整座茶园。</div>
+    <div id="batchList"></div>
+  </div>
+</div>
+
+<dialog id="parcelDlg"></dialog>
+<dialog id="diaryDlg">
+  <div class="dlg-head"><b>写生长日记</b><button class="ghost small" onclick="this.closest('dialog').close()">关闭</button></div>
+  <div class="dlg-body">
+    <div class="row">
+      <div><label>地块</label><select id="dParcel"></select></div>
+      <div><label>日期</label><input type="date" id="dDate"></div>
+      <div><label>天气</label><input id="dWeather" placeholder="如 多云 18℃"></div>
+    </div>
+    <label>内容</label><textarea id="dBody" placeholder="芽头、采摘、施肥、虫情……"></textarea>
+    <p class="muted">未登录或离线时将存入本机待发队列，联网后自动同步（<code>clientId</code> 幂等，重复提交只保留一条）。</p>
+    <div style="margin-top:10px;text-align:right">
+      <button id="dSave">保存</button>
+    </div>
+  </div>
+</dialog>
+
+<footer>云雾峰茶园认养演示站 · 本地米制坐标示意图，不代表真实地理边界 · <a href="/design">查看设计说明</a></footer>
+<script src="/js/api.js"></script>
+<script src="/js/map.js"></script>
+<script src="/js/offline.js"></script>
+<script src="/js/index.js"></script>
+</body>
+</html>

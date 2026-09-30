@@ -1,0 +1,94 @@
+/* 茶园认养站 —— 原创视觉：山雾绿 + 茶汤赭，纸感卡片 */
+:root{
+  --ink:#22301f; --ink-soft:#4a5a45; --paper:#f7f5ec; --card:#fffdf6;
+  --green:#3d6b43; --green-d:#2c4f30; --green-l:#dbe8d4; --jade:#7ba05b;
+  --tea:#b07a4b; --tea-l:#ecd9c2; --warn:#b04a3a; --warn-l:#f3dcd6;
+  --gold:#c8a24a; --line:#d9d4c2; --shadow:0 2px 10px rgba(50,60,40,.10);
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  color:var(--ink); background:var(--paper); line-height:1.65;}
+a{color:var(--green-d);text-decoration:none}
+a:hover{text-decoration:underline}
+header.site{background:linear-gradient(135deg,var(--green-d),var(--green));color:#f2f6ec;
+  padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow)}
+header.site h1{font-size:19px;margin:0;letter-spacing:2px}
+header.site nav{margin-left:auto;display:flex;gap:14px;align-items:center;font-size:14px}
+header.site nav a{color:#e7efdf;padding:4px 10px;border-radius:8px}
+header.site nav a:hover{background:rgba(255,255,255,.15);text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px 18px;margin-bottom:18px}
+.card h2{margin:0 0 10px;font-size:17px;color:var(--green-d);display:flex;align-items:center;gap:8px}
+.card h3{margin:14px 0 6px;font-size:15px;color:var(--green-d)}
+.grid{display:grid;gap:18px}
+.grid.two{grid-template-columns:1.35fr 1fr}
+@media(max-width:900px){.grid.two{grid-template-columns:1fr}}
+.muted{color:var(--ink-soft);font-size:13px}
+.badge{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);
+  background:#fff;color:var(--ink-soft);margin:2px 4px 2px 0;white-space:nowrap}
+.badge.fixed{background:var(--tea-l);border-color:#d8b48c;color:#7a4f2b}
+.badge.boundary{background:var(--green-l);border-color:#aec7a3;color:var(--green-d)}
+.badge.pending{background:var(--warn-l);border-color:#dda59a;color:var(--warn)}
+.badge.gift{background:fbf3da;background:#fbf3da;border-color:#e3cd8e;color:#8a6d1f}
+.badge.locked{background:#eee;border-color:#ccc;color:#666}
+.notice{border-left:4px solid var(--gold);background:#fdf8e8;padding:10px 14px;border-radius:8px;font-size:13.5px;margin:10px 0}
+.notice.warn{border-color:var(--warn);background:var(--warn-l)}
+.notice.info{border-color:var(--jade);background:#eef5e9}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--ink-soft);font-weight:600;background:#f3f1e6;position:sticky;top:0}
+tr:hover td{background:#faf8ef}
+button,.btn{font:inherit;border:1px solid var(--green);background:var(--green);color:#fff;
+  padding:7px 14px;border-radius:9px;cursor:pointer;font-size:14px}
+button:hover,.btn:hover{background:var(--green-d);text-decoration:none}
+button.ghost{background:#fff;color:var(--green-d)}
+button.danger{border-color:var(--warn);background:var(--warn)}
+button.small{padding:3px 10px;font-size:12.5px}
+button:disabled{opacity:.5;cursor:not-allowed}
+input,select,textarea{font:inherit;padding:7px 10px;border:1px solid #c9c3ad;border-radius:8px;background:#fff;width:100%}
+textarea{min-height:64px;resize:vertical}
+label{font-size:13px;color:var(--ink-soft);display:block;margin:8px 0 3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row>div{flex:1;min-width:120px}
+.pill{font-size:12px;padding:1px 8px;border-radius:6px;background:var(--green-l);color:var(--green-d)}
+.pill.over{background:var(--warn-l);color:var(--warn)}
+.pill.free{background:#e8e2cd;color:#7a6f4a}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:10px 20px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .25s;z-index:99;max-width:90vw}
+.toast.show{opacity:.95}
+.toast.err{background:var(--warn)}
+dialog{border:1px solid var(--line);border-radius:var(--radius);padding:0;max-width:640px;width:92vw}
+dialog::backdrop{background:rgba(30,40,25,.45)}
+.dlg-head{background:var(--green-d);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.dlg-body{padding:16px 18px;max-height:70vh;overflow:auto}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{background:#ece8d8;color:var(--ink-soft);border-color:var(--line)}
+.tabs button.active{background:var(--green);color:#fff;border-color:var(--green)}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:13.5px;margin:8px 0}
+.kv dt{color:var(--ink-soft)}
+.kv dd{margin:0}
+/* SVG 地图 */
+.mapbox{background:linear-gradient(#eef3e6,#e4ecdc);border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.parcel{cursor:pointer;transition:filter .15s}
+.parcel:hover{filter:brightness(1.08)}
+.parcel.selected{stroke:var(--ink)!important;stroke-width:3!important}
+.parcel-label{font-size:13px;font-weight:700;fill:#20301d;pointer-events:none;text-anchor:middle}
+.parcel-sub{font-size:11px;fill:#41523b;pointer-events:none;text-anchor:middle}
+.contour{fill:none;stroke:#b9cda9;stroke-width:1;stroke-dasharray:4 6;opacity:.7}
+.compass{font-size:11px;fill:#5f7057;text-anchor:middle}
+.scalebar{font-size:10px;fill:#5f7057}
+.timeline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.timeline input[type=range]{flex:1;min-width:200px}
+.adopt-line{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.adopt-line:last-child{border-bottom:0}
+.offline-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#bbb;margin-right:5px}
+.offline-dot.on{background:#5fae6b}.offline-dot.off{background:#d2705e}
+footer{text-align:center;color:var(--ink-soft);font-size:12.5px;padding:26px 10px 40px}
+.login-box{max-width:380px;margin:8vh auto}
+.split-list .mini{font-size:12px;color:var(--ink-soft)}
+code{background:#eee8d6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+.private-tag{font-size:11px;color:var(--warn);border:1px dashed var(--warn);border-radius:6px;padding:0 6px;margin-left:6px}
+.period-chip{font-weight:700;color:var(--green-d);background:var(--green-l);border-radius:8px;padding:2px 10px;font-size:13px}

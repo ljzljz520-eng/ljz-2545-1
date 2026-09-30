@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>后台管理 · 茶园认养</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="site">
+  <h1>🛠️ 认养后台</h1>
+  <nav>
+    <a href="/">返回地图</a><a href="/design">设计说明</a>
+    <span id="who" class="muted" style="color:#dce8d4"></span>
+    <button class="small ghost" id="logoutBtn">退出</button>
+  </nav>
+</header>
+<div class="wrap" id="app" style="display:none">
+  <div class="card" id="mapCard">
+    <h2>当前边界与占用（点击选中地块，所有操作带版本号提交）</h2>
+    <div class="mapbox" id="map"></div>
+    <p class="muted">选中后可在下方「边界演化」中纠偏/拆分/合并。提交若基于过期版本，服务端返回 409 冲突。</p>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="parcels" class="active">地块与边界演化</button>
+    <button data-tab="adoptions">认养区间</button>
+    <button data-tab="pending">未决差异 <span id="pendingBadge" class="pill"></span></button>
+    <button data-tab="batches">采摘批次/检测</button>
+    <button data-tab="attachments">对象层附件</button>
+    <button data-tab="shares">送礼权限链接</button>
+    <button data-tab="audit">冲突审计</button>
+  </div>
+
+  <div class="tabpane" data-pane="parcels">
+    <div class="card">
+      <h2>选中地块</h2>
+      <div id="selInfo" class="muted">请在地图中选择一个地块。</div>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h2>① 边界纠偏（同地块换边界，旧版本关闭保留）</h2>
+        <p class="muted">纠偏日期生效；旧认养按交集重映射，固定份额不足部分进未决。</p>
+        <label>生效日期 <input type="date" id="cDate"></label>
+        <label>新边界 GeoJSON Polygon（米制坐标） <textarea id="cGeom" style="min-height:110px"></textarea></label>
+        <label>说明 <input id="cNote" placeholder="如：石坎复测向西纠偏 3 米"></label>
+        <button id="cBtn">提交纠偏（条件版本 <span id="cVer"></span>）</button>
+      </div>
+      <div class="card">
+        <h2>② 拆分（沿贯穿直线切成两片）</h2>
+        <label>生效日期 <input type="date" id="sDate"></label>
+        <div class="row">
+          <div><label>切点1 x</label><input id="sX1" type="number"></div>
+          <div><label>切点1 y</label><input id="sY1" type="number"></div>
+          <div><label>切点2 x</label><input id="sX2" type="number"></div>
+          <div><label>切点2 y</label><input id="sY2" type="number"></div>
+        </div>
+        <div class="row">
+          <div><label>延续片编码/名称</label><input id="sC0" placeholder="如 A1 / 西片"></div>
+          <div><label>新建片编码/名称</label><input id="sC1" placeholder="如 A2 / 东片"></div>
+        </div>
+        <button id="sBtn">提交拆分</button>
+        <p class="muted">父地块作为延续片保留 id 并升版本，第二片是新地块。面积之和必须等于原面积。</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>③ 合并（相邻凸地块）</h2>
+      <div class="row">
+        <div><label>地块1 id</label><input id="mId1" type="number"></div>
+        <div><label>版本</label><input id="mV1" type="number"></div>
+        <div><label>地块2 id</label><input id="mId2" type="number"></div>
+        <div><label>版本</label><input id="mV2" type="number"></div>
+        <div><label>新编码/名称</label><input id="mCode" placeholder="如 A / 合并区"></div>
+        <div><label>生效日期</label><input id="mDate" type="date"></div>
+      </div>
+      <button id="mBtn">提交合并</button>
+      <p class="muted">重叠或非相邻（凸包有缝隙）会被拒绝；第一块作为延续片。</p>
+    </div>
+    <div class="card">
+      <h2>④ 新建地块</h2>
+      <div class="row">
+        <div><label>编码</label><input id="nCode"></div>
+        <div><label>名称</label><input id="nName"></div>
+        <div><label>生效日期</label><input id="nDate" type="date"></div>
+      </div>
+      <label>GeoJSON Polygon</label><textarea id="nGeom" style="min-height:90px"></textarea>
+      <button id="nBtn">创建</button>
+    </div>
+  </div>
+
+  <div class="tabpane" data-pane="adoptions" style="display:none">
+    <div class="card">
+      <h2>认养区间</h2>
+      <div class="notice info"><strong>不变量：</strong>同一地块版本在任一天的认养确认面积之和不得超过其面积。新增若造成重叠超额，事务回滚并返回 409。</div>
+      <table id="adTable"></table>
+    </div>
+    <div class="card">
+      <h2>新增认养（比较两种模式）</h2>
+      <div class="row">
+        <div><label>地块 id</label><input id="aPid" type="number"></div>
+        <div><label>基于版本</label><input id="aVer" type="number"></div>
+        <div><label>署名</label><input id="aLabel"></div>
+      </div>
+      <div class="row">
+        <div><label>模式</label><select id="aMode"><option value="fixed">fixed 固定份额（差异待决）</option><option value="boundary">boundary 随边界重分配</option></select></div>
+        <div><label>面积㎡</label><input id="aArea" type="number"></div>
+        <div><label>开始</label><input id="aStart" type="date"></div>
+        <div><label>结束（空=长期）</label><input id="aEnd" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label>是否送礼</label><select id="aGift"><option value="0">普通</option><option value="1">送礼</option></select></div>
+        <div><label>价格（分，私有）</label><input id="aPrice" type="number" placeholder="128000"></div>
+        <div><label>联系方式（私有）</label><input id="aContact"></div>
+      </div>
+      <button id="aBtn">创建认养</button>
+    </div>
+  </div>
+
+  <div class="tabpane" data-pane="pending" style="display:none">
+    <div class="card"><h2>未决差异（固定份额在新边界上未能对应的面积）</h2>
+      <div id="pendingList"></div></div>
+  </div>
+
+  <div class="tabpane" data-pane="batches" style="display:none">
+    <div class="card">
+      <h2>采摘批次</h2>
+      <div class="notice warn">批次绑定<strong>采摘当天生效的地块边界版本</strong>与声明范围；检测只对该批次来样负责。</div>
+      <table id="batchTable"></table>
+    </div>
+    <div class="grid two">
+      <div class="card">
+        <h2>新建批次</h2>
+        <div class="row">
+          <div><label>批次号</label><input id="bCode"></div>
+          <div><label>地块 id</label><input id="bPid" type="number"></div>
+          <div><label>采摘日</label><input id="bDate" type="date"></div>
+          <div><label>茶种</label><input id="bKind"></div>
+          <div><label>产量kg</label><input id="bYield" type="number"></div>
+        </div>
+        <label>声明范围（只写实际范围）</label><input id="bScope" placeholder="如：仅 A1 西片当日手采鲜叶 42kg">
+        <button id="bBtn">创建批次</button>
+      </div>
+      <div class="card">
+        <h2>登记检测 / 撤回</h2>
+        <div class="row">
+          <div><label>批次 id</label><input id="rBatch" type="number"></div>
+          <div><label>标题</label><input id="rTitle"></div>
+          <div><label>检测机构</label><input id="rLab"></div>
+          <div><label>签发日</label><input id="rDate" type="date"></div>
+        </div>
+        <label>结论（明确适用范围）</label><textarea id="rSummary"></textarea>
+        <label>附件 id（先到「对象层附件」上传）</label><input id="rAtt" type="number">
+        <div style="margin-top:8px"><button id="rBtn">登记报告</button>
+        <button class="danger" id="wBtn">按报告 id 撤回</button> <input id="wId" type="number" style="width:110px;display:inline-block" placeholder="报告id"> <input id="wReason" placeholder="撤回原因" style="display:inline-block;width:200px"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabpane" data-pane="attachments" style="display:none">
+    <div class="card">
+      <h2>对象层附件归档</h2>
+      <p class="muted">文件本体存入 <code>data/objects/</code>（SHA-256 命名），数据库仅存指针与哈希；撤回检测时附件置 <code>archived</code>，文件不物理删除。</p>
+      <div class="row"><div style="flex:2"><label>上传检测附件（txt/pdf/图片/json）</label><input type="file" id="upFile"></div>
+      <div><button id="upBtn">上传</button></div></div>
+      <table id="attTable" style="margin-top:10px"></table>
+    </div>
+  </div>
+
+  <div class="tabpane" data-pane="shares" style="display:none">
+    <div class="card">
+      <h2>送礼视图独立权限链接</h2>
+      <div class="notice warn"><strong>权限在服务端：</strong><code>gift</code> 链接返回的 JSON 根本不含价格与联系方式；不是用 CSS 隐藏。<code>admin</code> 链接才含私有字段。链接可设过期时间与撤销。</div>
+      <div class="row">
+        <div><label>认养 id</label><input id="shAd" type="number"></div>
+        <div><label>范围</label><select id="shScope"><option value="gift">gift（收礼人，无私有字段）</option><option value="admin">admin（含价格/联系方式）</option></select></div>
+        <div><label>过期时间（空=长期）</label><input id="shExp" type="date"></div>
+        <div><button id="shBtn">签发链接</button></div>
+      </div>
+      <div id="shOut"></div>
+      <table id="shTable" style="margin-top:10px"></table>
+    </div>
+  </div>
+
+  <div class="tabpane" data-pane="audit" style="display:none">
+    <div class="card"><h2>最近操作与并发/占用冲突留痕</h2><table id="auditTable"></table></div>
+  </div>
+</div>
+
+<!-- 登录 -->
+<div class="wrap" id="login">
+  <div class="card login-box">
+    <h2>管理员 / 农户登录</h2>
+    <label>用户名 <input id="lu" value="admin"></label>
+    <label>密码 <input id="lp" type="password" value="admin123"></label>
+    <div style="margin-top:12px"><button id="lBtn">登录</button></div>
+    <p class="muted">演示账号：admin/admin123、farmer/farmer123</p>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script src="/js/map.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
