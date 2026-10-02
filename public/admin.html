@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>后台管理 · 云栖茶园</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">⚙️ 茶园后台</div>
+  <nav>
+    <a href="/">地图</a><a href="/diaries.html">日记</a><a href="/tests.html">检测</a>
+    <a href="/admin.html">后台</a><a href="/design.html">设计说明</a>
+  </nav>
+  <span class="sp"></span>
+  <span id="who" class="muted" style="color:#dfead6"></span>
+  <button class="ghost" id="logout">退出</button>
+</header>
+<div class="wrap">
+  <div id="perm" class="notice" style="display:none"></div>
+  <div class="tabs" id="tabs">
+    <button data-tab="plots" class="active">地块与边界</button>
+    <button data-tab="adopt">认养区间</button>
+    <button data-tab="corr">面积对应 / 未决差异</button>
+    <button data-tab="farm">采摘 / 采样 / 附件</button>
+    <button data-tab="gift">送礼链接</button>
+  </div>
+
+  <!-- 地块 -->
+  <section data-pane="plots">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">地块版本与空间编辑</h2>
+        <div class="row">
+          <label>查看日期<input type="date" id="plotDate" value="2026-10-02"></label>
+          <button class="ghost" id="refreshPlots">刷新</button>
+          <button id="newPlot">＋ 新增地块</button>
+        </div>
+      </div>
+      <div class="muted">并发保护：点击“编辑边界”会对该版本加 120 秒租约锁；提交时携带 expected_version_id 做版本条件提交。他人持锁时返回 423。</div>
+      <div id="plotList" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- 认养 -->
+  <section data-pane="adopt" style="display:none">
+    <div class="grid" style="grid-template-columns:1fr 380px">
+      <div class="card">
+        <h2>认养记录</h2>
+        <table id="adoptTable"><thead><tr>
+          <th>地块</th><th>认养人（私有）</th><th>区间</th><th>面积</th><th>份额策略</th><th>价格（私有）</th><th>锚定边界</th><th>状态</th>
+        </tr></thead><tbody></tbody></table>
+        <div class="notice" style="margin-top:8px">认养人与价格仅登录后台可见；<b>送礼接口在服务端即不返回这些字段</b>，不是用 CSS 隐藏。</div>
+      </div>
+      <div class="card">
+        <h3>新建认养区间</h3>
+        <div class="grid">
+          <label>地块<select id="aPlot"></select></label>
+          <label>认养人<input id="aName"></label>
+          <label>联系方式（私有）<input id="aContact"></label>
+          <div class="row">
+            <label>开始<input type="date" id="aStart"></label>
+            <label>结束<input type="date" id="aEnd"></label>
+          </div>
+          <label>面积（㎡）<input type="number" id="aArea" step="0.01"></label>
+          <label>份额策略
+            <select id="aPolicy">
+              <option value="fixed">固定地块份额（旧认养按原边界保留）</option>
+              <option value="redistribute">随边界重分配（按几何比例迁移）</option>
+            </select></label>
+          <label>价格（分，私有）<input type="number" id="aPrice" step="1" placeholder="如 168000 = ¥1680"></label>
+          <button id="aSubmit">创建认养</button>
+          <div id="avail" class="muted"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 未决差异 -->
+  <section data-pane="corr" style="display:none">
+    <div class="card">
+      <h2>面积对应与未决差异</h2>
+      <p class="muted">拆分/合并/纠偏后，系统在“旧认养原边界”与“新版本边界”之间建立面积对应。
+        fixed 策略下，未对应到新边界的面积进入<b>未决差异</b>，在管理员裁决前持续占位，避免重复分配。</p>
+      <table id="corrTable"><thead><tr>
+        <th>#</th><th>事件日</th><th>认养</th><th>旧地块→新地块</th><th>策略</th>
+        <th>旧面积</th><th>已对应</th><th>未决差异</th><th>状态</th><th></th>
+      </tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- 农事 -->
+  <section data-pane="farm" style="display:none">
+    <div class="grid">
+      <div class="card">
+        <h3>采摘批次</h3>
+        <div class="row">
+          <select id="pkPlot"></select>
+          <input type="date" id="pkDate" value="2026-10-02">
+          <input id="pkGrade" placeholder="等级">
+          <button id="pkAdd">建采摘批</button>
+        </div>
+        <div id="pkList" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h3>采样批（必须声明范围）</h3>
+        <div class="grid">
+          <label>对应采摘批<select id="spPk"></select></label>
+          <label>采样日<input type="date" id="spDate"></label>
+          <label>声明范围（结果仅对此有效）<textarea id="spScope" rows="2" placeholder="如：P-05 当前边界内 2026-10-02 批三点采样"></textarea></label>
+          <label>检测机构<input id="spLab"></label>
+          <label>结果摘要（注明“该范围内”）<input id="spResult"></label>
+          <button id="spAdd">建采样批</button>
+        </div>
+        <div id="spList" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h3>检测附件（对象层归档 / 撤回）</h3>
+        <div class="muted">附件存入对象层 data/objects；撤回会同时逻辑标记与物理删除，撤回后下载返回 410。</div>
+        <div id="attList" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 送礼 -->
+  <section data-pane="gift" style="display:none">
+    <div class="grid" style="grid-template-columns:360px 1fr">
+      <div class="card">
+        <h3>生成送礼链接</h3>
+        <div class="grid">
+          <label>地块<select id="gPlot"></select></label>
+          <label>赠言<textarea id="gMsg" rows="2">送你一亩春天的山坡。</textarea></label>
+          <label>有效期（小时）<input type="number" id="gHours" value="168"></label>
+          <label>最多打开次数（可空）<input type="number" id="gMax" placeholder="不限"></label>
+          <button id="gAdd">生成</button>
+        </div>
+        <div class="notice" style="margin-top:10px">送礼视图使用<b>独立的 X-Gift-Token 权限</b>，与管理员会话完全分离；
+          链接过期、吊销或超次数即 403。</div>
+      </div>
+      <div class="card">
+        <h3>已生成链接</h3>
+        <table id="gTable"><thead><tr><th>地块</th><th>赠言</th><th>到期</th><th>次数</th><th>状态</th><th>操作</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog id="editor">
+  <div class="modal-body">
+    <h3 id="edTitle">边界编辑</h3>
+    <div class="muted" id="edLock"></div>
+    <div class="map-shell" style="height:340px;margin:10px 0"><svg id="edMap" style="height:340px"></svg></div>
+    <div class="row">
+      <button class="ghost" id="edSplit">按直线拆分（画两个点）</button>
+      <button class="ghost" id="edCorrect">纠偏（拖拽顶点）</button>
+      <button class="ghost" id="edCancel">取消</button>
+      <button id="edSave">提交（带版本条件）</button>
+    </div>
+    <p class="muted">提示：拆分模式在图上点两个点确定切线；纠偏模式直接拖动多边形顶点。</p>
+  </div>
+</dialog>
+
+<script type="module" src="/js/admin-page.js"></script>
+</body></html>

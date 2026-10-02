@@ -1,0 +1,14 @@
+{
+  "name": "tea-garden-adoption",
+  "version": "1.0.0",
+  "description": "云栖茶园 · 坡地地块认养全栈主题站（空间版本化 / 检测声明范围 / 送礼独立权限）",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node seed.js",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
+  }
+}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>来自云栖茶园的一份心意</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header style="background:linear-gradient(135deg,#7a4b2a,#c8852a)">
+  <div class="brand">🎁 云栖茶园 · 送礼视图</div>
+</header>
+<div class="wrap" style="max-width:760px">
+  <div id="box"></div>
+</div>
+<script type="module">
+import { api, store, toast } from '/js/api.js';
+const token = new URLSearchParams(location.search).get('gift');
+if (token) sessionStorage.setItem('gift_token', token);
+const box = document.getElementById('box');
+(async () => {
+  if (!token) { box.innerHTML = '<div class="card"><h2>链接不完整</h2><p class="muted">送礼链接需要携带 ?gift= 令牌。</p></div>'; return; }
+  try {
+    const d = await api('GET', '/api/gift/view', null, { gift: true });
+    box.innerHTML = `
+      <div class="card" style="text-align:center;background:linear-gradient(160deg,#fffaf2,#fff)">
+        <div style="font-size:40px">🍃</div>
+        <h2 style="margin:6px 0">${d.plot.name}</h2>
+        <p style="font-size:16px;color:#7a4b2a">“${d.gift.message}”</p>
+        <p class="muted">链接有效期至 ${new Date(d.gift.expires_at).toLocaleString()}</p>
+      </div>
+      <div class="card">
+        <h3>这份礼物在山坡上的位置</h3>
+        <div class="map-shell"><svg id="gmap" class="map" style="height:320px"></svg></div>
+        <div class="notice"><b>位置与时段：</b>${d.plot.current.time_window_text}。</div>
+        <table><thead><tr><th>边界版本</th><th>事件</th><th>生效</th><th>被取代</th><th>面积</th></tr></thead><tbody>
+          ${d.plot.boundary_timeline.map(v => `<tr><td>v${v.version_no}</td>
+            <td>${v.event === 'create' ? '初始' : v.event === 'split' ? '拆分' : v.event === 'merge' ? '合并' : '纠偏'}</td>
+            <td>${v.valid_from}</td><td>${v.valid_to || '至今'}</td><td>${v.area_m2}㎡</td></tr>`).join('')}
+        </tbody></table>
+        <h3>被认养的时段（不显示认养人）</h3>
+        ${d.adopted_periods.length ? d.adopted_periods.map(a => `<div class="muted">· ${a.period_start} ~ ${a.period_end}</div>`).join('') : '<div class="muted">当前无认养时段</div>'}
+      </div>
+      <div class="card">
+        <h3>为这片山坡劳作的农户</h3>
+        ${d.farmers.length ? d.farmers.map(f => `<div style="margin:6px 0"><b>${f.name}</b><div class="muted">${f.bio}</div></div>`).join('') : '<div class="muted">暂无公开农户信息</div>'}
+      </div>
+      <div class="card">
+        <h3>近期生长日记</h3>
+        ${d.diaries.length ? d.diaries.map(x => `<div style="border-left:3px solid var(--amber);padding:4px 12px;margin:8px 0">
+          <b>${x.entry_date}</b> <span class="muted">${x.weather || ''} ${x.farmer_name ? '· ' + x.farmer_name : ''}</span><div>${x.body}</div></div>`).join('')
+          : '<div class="muted">暂无日记</div>'}
+      </div>
+      <div class="scope-box">${d._disclaimer}</div>`;
+    const { HillMap } = await import('/js/hillmap.js');
+    const map = new HillMap(document.getElementById('gmap'), { onPick: () => {} });
+    map.setFeatures([{ plot_id: d.plot.code, code: d.plot.code, plot_name: d.plot.name, slope_zone: d.plot.slope_zone,
+      plot_status: 'active', version_id: 1, version_no: d.plot.current.version_no, event: 'create',
+      valid_from: d.plot.current.valid_from, valid_to: d.plot.current.valid_to,
+      area_m2: d.plot.current.area_m2, geometry: d.plot.current.geometry }]);
+  } catch (e) {
+    box.innerHTML = `<div class="card"><h2 style="color:var(--red)">无法打开这份礼物</h2>
+      <p>${e.message}</p>
+      <p class="muted">送礼链接可能已过期、被吊销或打开次数已达上限。请联系发送者重新生成——送礼权限与茶园管理后台相互独立。</p>
+      <a href="/">← 前往茶园公开地图</a></div>`;
+  }
+})();
+</script>
+</body></html>

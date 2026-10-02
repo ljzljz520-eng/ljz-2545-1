@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>检测公示 · 云栖茶园</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">🔬 检测公示</div>
+  <nav><a href="/">山坡地图</a><a href="/diaries.html">生长日记</a><a href="/tests.html">检测公示</a><a href="/admin.html">后台管理</a><a href="/design.html">设计说明</a></nav>
+</header>
+<div class="wrap">
+  <div class="scope-box">
+    <b>范围声明原则：</b>每一条检测都对应一个<b>采样批</b>，其结论<b>只对该采样批声明的范围有效</b>
+    （具体地块、具体边界版本、采样点与日期）。本站不会、也不应把任何一份检测报告泛化为“整座茶园合格”。
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h2>采样批列表</h2>
+    <div id="list" class="muted">登录后查看完整检测记录…</div>
+  </div>
+</div>
+<script type="module">
+import { api, fmt, toast } from '/js/api.js';
+(async () => {
+  const el = document.getElementById('list');
+  try {
+    const rows = await api('GET', '/api/samplings');
+    if (!rows.length) { el.innerHTML = '<div class="muted">暂无采样批</div>'; return; }
+    el.innerHTML = '<table><thead><tr><th>采样编号</th><th>地块</th><th>采样日</th><th>声明范围（仅此有效）</th><th>检测机构</th><th>结果摘要</th></tr></thead><tbody>'
+      + rows.map(s => `<tr>
+        <td><b>${s.code}</b><br><small class="code">采摘批 ${s.picking_code}</small></td>
+        <td>${s.plot_code}</td><td>${s.sampled_on}</td>
+        <td><span class="badge pending">声明范围</span><br>${s.scope_claim}
+            <div class="muted">${s.applicability}</div></td>
+        <td>${s.lab || '—'}</td><td>${s.result_summary || '检测中'}</td></tr>`).join('')
+      + '</tbody></table>';
+  } catch (e) {
+    el.innerHTML = `<div class="notice">${e.message}。检测明细需登录后查看，但“仅代表声明范围”的原则对所有访客一致。</div>`;
+  }
+})();
+</script>
+</body></html>

@@ -23,3 +23,9 @@ __pycache__/
 *.log
 .env
 .env.*
+
+# 运行期数据库与对象层（用 npm run seed 重建）
+data/app.db
+data/app.db-*
+data/objects/*
+!data/objects/.gitkeep

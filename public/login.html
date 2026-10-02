@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>登录 · 云栖茶园</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header><div class="brand">🍃 云栖茶园 · 管理登录</div></header>
+<div class="wrap" style="max-width:420px">
+  <div class="card">
+    <h2>工作人员登录</h2>
+    <p class="muted">演示账号：admin / tea-admin-2026（管理员）；staff / tea-staff-2026（运营）</p>
+    <div class="grid">
+      <label>用户名<input id="u" value="admin"></label>
+      <label>口令<input id="p" type="password" value="tea-admin-2026"></label>
+      <button id="go">登录</button>
+      <a class="muted" href="/">← 返回公开地图</a>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { api, store, toast } from '/js/api.js';
+document.getElementById('go').onclick = async () => {
+  try {
+    const r = await api('POST', '/api/auth/login', {
+      username: document.getElementById('u').value, password: document.getElementById('p').value });
+    store.token = r.token; store.user = { id: r.id, username: r.username, role: r.role, display_name: r.display_name };
+    location.href = '/admin.html';
+  } catch (e) { toast(e.message, true); }
+};
+</script>
+</body></html>

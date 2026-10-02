@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>生长日记 · 云栖茶园</title><link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">🍃 生长日记</div>
+  <nav><a href="/">山坡地图</a><a href="/diaries.html">生长日记</a><a href="/tests.html">检测公示</a><a href="/admin.html">后台管理</a><a href="/design.html">设计说明</a></nav>
+</header>
+<div class="wrap">
+  <div id="net" class="notice" style="display:none"></div>
+  <div class="grid" style="grid-template-columns:1fr 340px" id="twoCol">
+    <div class="card">
+      <h2>茶园日记时间线</h2>
+      <div id="list" class="muted">加载中…</div>
+    </div>
+    <div class="card" id="writeCard">
+      <h3>记录今日（支持离线）</h3>
+      <p class="muted">断网时写的内容会存入本机待发队列，恢复联网后点击同步；服务端以 client_uuid 幂等去重。</p>
+      <div class="grid">
+        <label>地块<select id="plot"></select></label>
+        <label>日期<input type="date" id="date"></label>
+        <label>天气<input id="weather" placeholder="如：多云 14℃"></label>
+        <label>内容<textarea id="body" rows="4"></textarea></label>
+        <div class="row">
+          <button id="save">保存到队列</button>
+          <button class="ghost" id="sync">同步待发 (<span id="qcount">0</span>)</button>
+        </div>
+        <div id="outbox" class="muted"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="module" src="/js/diaries-page.js"></script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
+</body></html>

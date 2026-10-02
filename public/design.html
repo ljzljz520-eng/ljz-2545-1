@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>设计说明 · 云栖茶园</title>
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">📐 设计说明</div>
+  <nav><a href="/">山坡地图</a><a href="/diaries.html">生长日记</a><a href="/tests.html">检测公示</a><a href="/admin.html">后台管理</a><a href="/design.html">设计说明</a></nav>
+</header>
+<div class="wrap" style="max-width:900px">
+
+<div class="card">
+<h2>一、这个站点要回答的核心问题</h2>
+<p>认养一块<b>会变化的山坡</b>和认养一个固定货架格子不同：地块会因排水沟修整、GPS 复测纠偏、相邻地块合并而改变边界。
+一旦边界变化，就会出现三个必须诚实回答的问题：</p>
+<ol>
+  <li><b>地图上的这块地，是哪一天的边界？</b></li>
+  <li><b>这笔认养，属于哪个时段、锚定哪一版边界？</b></li>
+  <li><b>边界变了，原来认养的面积会不会被重复卖给别人？</b></li>
+</ol>
+<p>本站全部设计都围绕“<b>让位置、版本与时段三者始终对得上</b>”展开。</p>
+</div>
+
+<div class="card">
+<h2>二、空间数据库：不可变版本，而不是就地改坐标</h2>
+<p>每次<b>拆分 / 合并 / 纠偏</b>都<b>新增一行不可变的 plot_versions</b>（GeoJSON Polygon + valid_from/valid_to），
+并写入 plot_events 审计表与 parent_version_ids 血缘：</p>
+<ul>
+  <li><b>create</b>：v1 初始边界；</li>
+  <li><b>split</b>：旧地块置为 superseded、旧版本 valid_to=事件日，生成两块新地的 v1；</li>
+  <li><b>merge</b>：多块共边地缝合为一块，保留所有父版本引用；</li>
+  <li><b>correct</b>：同一地块追加 v2/v3…，旧版本原样保留。</li>
+</ul>
+<p>地图首页的<b>日期选择器</b>按 valid_from/valid_to 做“时间点查询（bitemporal 中的有效时间）”，
+用户拖动日期就能看到<b>当天真实存在的边界</b>；今天的地图不会覆盖昨天的事实。</p>
+<div class="notice">几何在服务端以自研轻量库实现（面积/耳切法三角化/Sutherland-Hodgman 裁剪/半平面拆分/共边缝合），
+拆分后两子块面积之和等于原地块，两子块可沿缝边无损合并还原——测试中对此做了守恒断言。</div>
+</div>
+
+<div class="card">
+<h2>三、“旧认养按原边界保留”与两种份额策略</h2>
+<p>认养记录在创建时<b>锚定当时的版本 id</b>。边界事件发生后，系统在新旧版本间建立
+<b>面积对应（area_correspondences）</b>，并区分两种策略：</p>
+<table>
+<tr><th></th><th>固定地块份额 fixed</th><th>随边界重分配 redistribute</th></tr>
+<tr><td><b>旧认养</b></td><td>按原边界保留：面积/价格/版本不变，记录仍 active</td><td>归档为 migrated，作为历史凭证保留</td></tr>
+<tr><td><b>新边界</b></td><td>只生成“面积对应”，不自动生成新认养</td><td>按几何交集比例自动在各新边界上生成新认养</td></tr>
+<tr><td><b>差异处理</b></td><td>未对应面积进入<b>未决差异清单</b>，等管理员裁决</td><td>差异为零时自动 resolved</td></tr>
+</table>
+<div class="notice"><b>防重复分配：</b>同一地块<b>血缘</b>上，只要认养时段相交，
+“本地块直接认养面积”与“祖先认养按对应关系折算（含 pending 未决差异）的份额”之和不得超过该日边界面积。
+冲突时返回 409，并给出冲突日期、已占用面积、剩余可用面积与冲突认养列表。</div>
+</div>
+
+<div class="card">
+<h2>四、版本条件提交与并发占用</h2>
+<ul>
+  <li><b>乐观条件（optimistic）：</b>纠偏提交必须带 expected_version_id；服务端比对当前版本，过期则 409 并回传 current_version_id。</li>
+  <li><b>占用锁（pessimistic lease）：</b>进入地图编辑器即对版本加 120 秒租约锁；他人持锁期间编辑返回 423（Locked），持锁者可重入。</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>五、采样批“只代表声明范围”</h2>
+<p>检测不是挂在“茶园”名下，而是挂在 <b>采摘批 → 采样批</b> 之下。采样批必须填写
+<b>scope_claim（声明范围）</b>并锚定采样日的边界版本，可附 scope_geometry（实际采样点）。
+列表与详情统一附带适用性文案：<i>“仅代表该声明范围；不代表茶园其他地块或整园水平”</i>，
+前端在醒目位置复述，避免把一份报告误读为整园背书。</p>
+<p>检测附件存入<b>对象层</b>（data/objects 中的 object_key），元数据入库；
+<b>撤回</b>同时做逻辑标记与物理删除，撤回后下载返回 <b>410 Gone</b>，任何页面都无法再取到内容。</p>
+</div>
+
+<div class="card">
+<h2>六、送礼视图：独立权限，而不是 CSS 隐藏</h2>
+<p>送礼链接使用<b>独立的 X-Gift-Token</b>（与登录会话完全分离的 share_links 表令牌），具有：</p>
+<ul>
+  <li>expires_at 过期时间、revoked 吊销开关、max_views/view_count 打开次数限制；</li>
+  <li>无效/过期/超限一律 403，匿名可访问有效链接。</li>
+</ul>
+<p>更关键的是<b>字段在服务端序列化前就被裁剪</b>：响应 DTO 里根本不存在
+price_amount（私有价格）、adopter_name（认养人）、contact（联系方式）。
+测试直接对响应原文做包含断言（不包含价格数字、认养人姓名、联系方式），
+因此“私有信息看不见”不是 display:none，而是<b>从未离开服务器</b>。</p>
+</div>
+
+<div class="card">
+<h2>七、离线日记</h2>
+<p>工作人员在山上常无信号。日记页把断网期间的内容写入 <b>IndexedDB 待发队列</b>，
+恢复后批量 POST /api/diaries/sync；每条带 <b>client_uuid</b>，服务端做唯一约束幂等 upsert——
+反复重试不会产生重复日记。Service Worker 只缓存应用外壳，<b>绝不缓存 API 与附件</b>，
+以保证撤回、过期、吊销这类权限变更实时生效。</p>
+</div>
+
+<div class="card">
+<h2>八、如何让用户看懂“位置与认养属于哪个时段”</h2>
+<ul>
+  <li>地图上失效边界以<b>虚线</b>绘制，并在图例说明；</li>
+  <li>点击地块，详情面板同时展示：选中日期、该版本 valid_from→valid_to、完整版本时间线、每笔认养的区间与其锚定版本；</li>
+  <li>送礼页同样展示边界版本表与“这份礼物在哪个时段有效”，并明确认养人信息不公开。</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>九、技术栈与测试</h2>
+<p>零前端构建、零外部服务依赖：Node.js 原生 HTTP + better-sqlite3；前端原生 ES Module + SVG。
+自动化测试（<code>npm test</code>）覆盖：几何面积/拆分守恒/缝合还原、同地块重叠认养、
+跨版本血缘超卖、边界纠偏版本条件提交、并发占用 423、时间回放、附件撤回 410、
+离线日记幂等、送礼链接过期/吊销/次数上限与服务端字段裁剪、HTTP 端到端权限矩阵。</p>
+<p class="muted">本页与界面文案、坡地视觉风格、份额策略解释均为本项目原创设计说明。</p>
+</div>
+
+</div>
+</body></html>

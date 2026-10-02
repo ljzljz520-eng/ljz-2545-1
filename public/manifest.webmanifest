@@ -1,0 +1,9 @@
+{
+  "name": "云栖茶园坡地认养",
+  "short_name": "云栖茶园",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f9f3",
+  "theme_color": "#2c4f28",
+  "icons": []
+}

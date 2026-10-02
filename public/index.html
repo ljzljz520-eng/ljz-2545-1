@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>云栖茶园 · 坡地认养</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">🍃 云栖茶园 · 坡地认养</div>
+  <nav>
+    <a href="/">山坡地图</a>
+    <a href="/diaries.html">生长日记</a>
+    <a href="/tests.html">检测公示</a>
+    <a href="/admin.html">后台管理</a>
+    <a href="/design.html">设计说明</a>
+  </nav>
+  <span class="sp"></span>
+  <span id="who" class="muted" style="color:#dfead6"></span>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <h2 style="margin:0 0 4px">山坡地块地图</h2>
+        <div class="muted">拖动平移 · 滚轮缩放 · 点击地块查看版本与认养时段。虚线=该日已被新边界取代的历史地块。</div>
+      </div>
+      <div class="row">
+        <label style="min-width:230px">地图所示日期（时间轴回放）
+          <input type="date" id="atDate" min="2025-01-01" max="2027-12-31">
+        </label>
+        <button class="ghost" id="todayBtn">回到今天</button>
+      </div>
+    </div>
+    <div class="map-shell">
+      <svg class="map" id="map"></svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:#cfe3bd"></i>云坞片区</span>
+      <span><i style="background:#bcd8a0"></i>青峰片区</span>
+      <span><i style="background:#e2c9a3"></i>栖霞片区</span>
+      <span><i style="background:#fff;border:2px dashed #34502f"></i>已失效历史边界</span>
+    </div>
+    <div class="notice">
+      <b>这张图表示什么？</b> 地图随所选日期显示<b>当天有效</b>的地块边界；拆分/合并/纠偏后，旧边界不会被删除，
+      而是保留为不可变的空间版本。点击任一地块，可看到“认养记录属于哪个时段、锚定哪一版边界”，
+      避免把今天的位置与过去的认养面积混为一谈。
+    </div>
+  </div>
+
+  <div id="detail" class="card" style="margin-top:16px;display:none"></div>
+</div>
+
+<script type="module" src="/js/map-page.js"></script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
+</body>
+</html>
